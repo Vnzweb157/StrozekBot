@@ -10,25 +10,15 @@ const MessageHandler = require("./handlers/messagehandler");
 const logger = pino({ level: "error" });
 
 async function connectToWhatsApp() {
-    if (fs.existsSync("auth_info_multi/creds.json")) {
-        try {
-            const creds = JSON.parse(fs.readFileSync("auth_info_multi/creds.json", "utf-8"));
-            if (!creds.me) {
-                console.log(chalk.red("💥 Credenciais incompletas detectadas. Limpando..."));
-                fs.rmSync("auth_info_multi", { recursive: true, force: true });
-            }
-        } catch (e) {
-            fs.rmSync("auth_info_multi", { recursive: true, force: true });
-        }
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState("auth_info_multi");
+    // Mudamos o nome da pasta para forçar o WhatsApp a gerar um QR Code novo do zero
+    const { state, saveCreds } = await useMultiFileAuthState("session_strozek");
 
     const sock = makeWASocket({
         auth: state,
         logger: logger,
         printQRInTerminal: false,
-        browser: Browsers.macOS("Desktop"),
+        // Usando o formato de array mais recente aceito pelas versões novas do Baileys
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
         syncFullHistory: false
     });
 
@@ -47,7 +37,7 @@ async function connectToWhatsApp() {
         }
 
         if (connection === "connecting") {
-            console.log(chalk.blue("⏳ Conectando ao WhatsApp..."));
+            console.log(chalk.blue("⏳ Conectando ao WhatsApp com nova sessão..."));
         }
 
         if (connection === "open") {
@@ -58,10 +48,13 @@ async function connectToWhatsApp() {
 
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
-            console.log(chalk.yellow(`⚠️ Conexão fechada. Razão: ${reason}`));
+            console.log(chalk.yellow(`\n⚠️ Conexão fechada. Razão: ${reason}`));
 
             if (reason === DisconnectReason.loggedOut || reason === 405) {
-                console.log(chalk.red("💥 Sessão inválida. Pare o bot com CTRL+C, rode 'rm -rf auth_info_multi' e ligue novamente."));
+                console.log(chalk.red("💥 Dispositivo desconectado no WhatsApp. Limpando pasta de sessão..."));
+                try { fs.rmSync("session_strozek", { recursive: true, force: true }); } catch (e) {}
+                console.log(chalk.green("🔄 Tentando gerar novo QR Code em 5 segundos..."));
+                setTimeout(() => { connectToWhatsApp(); }, 5000);
             } else {
                 setTimeout(() => { connectToWhatsApp(); }, 5000);
             }
