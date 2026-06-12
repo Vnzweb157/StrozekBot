@@ -4,8 +4,8 @@ const chalk = require("chalk");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 
-const { CommandHandler } = require("./handlers/commandHandler");
-const MessageHandler = require("./handlers/messageHandler");
+const { CommandHandler } = require("./handlers/commandhandler");
+const MessageHandler = require("./handlers/messagehandler");
 
 const logger = pino({ level: "error" });
 
