@@ -1,0 +1,16 @@
+{
+  "name": "strozek-bot-independente",
+  "version": "1.0.0",
+  "description": "Bot de WhatsApp independente do zero",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.4.5",
+    "pino": "^9.1.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
