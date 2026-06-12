@@ -7,19 +7,22 @@ const qrcode = require("qrcode-terminal");
 const { CommandHandler } = require("./handlers/commandhandler");
 const MessageHandler = require("./handlers/messagehandler");
 
-const logger = pino({ level: "error" });
+const logger = pino({ level: "silent" });
 
 async function connectToWhatsApp() {
-    // Mudamos o nome da pasta para forçar o WhatsApp a gerar um QR Code novo do zero
-    const { state, saveCreds } = await useMultiFileAuthState("session_strozek");
+    // Usando uma pasta totalmente nova e neutra
+    const { state, saveCreds } = await useMultiFileAuthState("whatsapp_session");
 
     const sock = makeWASocket({
         auth: state,
         logger: logger,
         printQRInTerminal: false,
-        // Usando o formato de array mais recente aceito pelas versões novas do Baileys
-        browser: ["Ubuntu", "Chrome", "20.0.04"],
-        syncFullHistory: false
+        // Usamos a emulação nativa do macOS com Safari, que é a mais aceita e menos bloqueada pelo ecossistema do WhatsApp
+        browser: Browsers.macOS("Safari"),
+        // Parâmetros limpos para evitar o filtro de spam (405)
+        syncFullHistory: false,
+        qrTimeoutMs: 60000,
+        connectTimeoutMs: 60000
     });
 
     const commandHandler = new CommandHandler(sock);
@@ -37,7 +40,7 @@ async function connectToWhatsApp() {
         }
 
         if (connection === "connecting") {
-            console.log(chalk.blue("⏳ Conectando ao WhatsApp com nova sessão..."));
+            console.log(chalk.blue("⏳ Estabelecendo conexão segura com o servidor..."));
         }
 
         if (connection === "open") {
@@ -48,13 +51,12 @@ async function connectToWhatsApp() {
 
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
-            console.log(chalk.yellow(`\n⚠️ Conexão fechada. Razão: ${reason}`));
-
+            
             if (reason === DisconnectReason.loggedOut || reason === 405) {
-                console.log(chalk.red("💥 Dispositivo desconectado no WhatsApp. Limpando pasta de sessão..."));
-                try { fs.rmSync("session_strozek", { recursive: true, force: true }); } catch (e) {}
-                console.log(chalk.green("🔄 Tentando gerar novo QR Code em 5 segundos..."));
-                setTimeout(() => { connectToWhatsApp(); }, 5000);
+                console.log(chalk.red(`\n⚠️ Bloqueio temporário do WhatsApp (Erro 405).`));
+                console.log(chalk.yellow("Limpando cache de tentativas... Aguarde 10 segundos antes do próximo disparo automático."));
+                try { fs.rmSync("whatsapp_session", { recursive: true, force: true }); } catch (e) {}
+                setTimeout(() => { connectToWhatsApp(); }, 10000);
             } else {
                 setTimeout(() => { connectToWhatsApp(); }, 5000);
             }
